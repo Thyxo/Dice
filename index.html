@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Terninger" />
+  <meta name="format-detection" content="telephone=no,date=no,address=no,email=no" />
+  <title>Terninger</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="stage" id="stage">
+    <div class="table" id="table"></div>
+    <div class="sum" id="sum" aria-live="polite"></div>
+    <div class="hint" id="hint">Tryk for at kaste</div>
+    <div class="peek" id="peek"></div>
+    <i class="speck" id="speck"></i>
+    <div class="quiet" id="quiet"></div>
+  </main>
+
+  <!-- ============ HEMMELIGT PANEL (5 hurtige tryk øverst til højre) ============ -->
+  <div class="secret" id="secret" hidden>
+    <div class="secret-sheet" role="dialog" aria-label="Indstillinger">
+      <div class="sheet-head">
+        <span></span>
+        <span class="sheet-title">Magix Dices</span>
+        <button class="sheet-done" id="done" type="button">Færdig</button>
+      </div>
+      <div class="sheet-scroll">
+
+        <div class="badge" id="badge">FORCE FRA</div>
+
+        <div class="group">
+          <label class="row switch-row"><span>Force aktiv</span><input type="checkbox" id="active" /></label>
+        </div>
+
+        <h3>Mål</h3>
+        <div class="seg" data-key="mode">
+          <button type="button" data-v="sum">Sum</button>
+          <button type="button" data-v="pair">Par</button>
+          <button type="button" data-v="list">Række</button>
+        </div>
+
+        <div class="mode-pane" data-pane="sum">
+          <div class="grid sums" id="sums"></div>
+          <p class="note">Kombinationen vælges tilfældigt, fx 7 = 1+6, 2+5 eller 3+4.</p>
+        </div>
+        <div class="mode-pane" data-pane="pair" hidden>
+          <div class="pair-pick">
+            <div class="grid six" id="pairA"></div>
+            <span class="plus">+</span>
+            <div class="grid six" id="pairB"></div>
+          </div>
+          <p class="note">Rækkefølgen (venstre/højre) blandes tilfældigt.</p>
+        </div>
+        <div class="mode-pane" data-pane="list" hidden>
+          <input class="text" id="list" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="11, 3, 8, 7  eller  5+6, 1+2" />
+          <p class="note" id="listNote">Ét mål pr. kast. Summer (2-12) eller par (5+6). Derefter ærlige kast.</p>
+        </div>
+
+        <h3>Hvornår</h3>
+        <div class="seg" data-key="when">
+          <button type="button" data-v="next">Næste kast</button>
+          <button type="button" data-v="after">Efter ærlige</button>
+          <button type="button" data-v="all">Alle kast</button>
+        </div>
+        <div class="group" id="honestRow">
+          <div class="row"><span>Ærlige kast først</span>
+            <span class="stepper"><button type="button" id="honMinus">−</button><b id="honVal">2</b><button type="button" id="honPlus">+</button></span>
+          </div>
+        </div>
+        <p class="note" id="whenNote"></p>
+
+        <div class="group">
+          <label class="row switch-row"><span>Ærlige kast undgår målet</span><input type="checkbox" id="avoid" /></label>
+          <label class="row switch-row"><span>Vis sum</span><input type="checkbox" id="showSum" /></label>
+          <label class="row switch-row"><span>Lyd</span><input type="checkbox" id="sound" /></label>
+          <label class="row switch-row"><span>Vibration (Android)</span><input type="checkbox" id="vibrate" /></label>
+          <label class="row switch-row"><span>Diskret prik når force er klar</span><input type="checkbox" id="indicator" /></label>
+          <label class="row switch-row"><span>Hurtig-force nederst til venstre</span><input type="checkbox" id="quickTaps" /></label>
+          <label class="row switch-row"><span>Rolig tilstand slår force fra</span><input type="checkbox" id="quietOff" /></label>
+        </div>
+
+        <h3>Seneste kast</h3>
+        <div class="log" id="log"><span class="muted">Ingen kast endnu</span></div>
+
+        <h3>Hemmelige gestusser</h3>
+        <div class="help">
+          <p><b>Panel:</b> 5 hurtige tryk øverst til højre.</p>
+          <p><b>Hurtig-force:</b> tryk 2-12 gange nederst til venstre → næste kast får den sum. 1 tryk rydder.</p>
+          <p><b>Panik:</b> hold øverst til venstre i 1 sek. → force fra.</p>
+          <p><b>Rolig tilstand:</b> swipe ned → terningerne lægges til ro, skærmen dæmpes.</p>
+          <p><b>Peek:</b> hold fingeren på måtten → sidste kast vises svagt, mens du holder.</p>
+        </div>
+
+        <button class="btn danger" id="panicBtn" type="button">PANIK – slå force fra</button>
+        <button class="btn" id="quietBtn" type="button">Rolig tilstand nu</button>
+        <p class="note center">Magix Dices · <span id="ver"></span></p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
