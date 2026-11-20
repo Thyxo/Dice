@@ -17,6 +17,7 @@ export const DEFAULTS = {
   indicator: false, // diskret prik på måtten når force er klar
   quietOff: true, // rolig tilstand slår force fra
   quickTaps: true, // hurtig-force med tryk nederst til venstre
+  mat: 'green', // måttens farve: green | black | red | blue
 };
 
 const clone = (o) => JSON.parse(JSON.stringify(o));

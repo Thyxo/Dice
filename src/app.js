@@ -4,7 +4,7 @@ import { nextThrow, newState, status, parseList, quickFromTaps, sumOf } from './
 import { loadSettings, saveSettings } from './settings.js';
 import { unlockAudio, clack } from './sound.js';
 
-const APP_VERSION = 'v2';
+const APP_VERSION = 'v3';
 const $ = (s) => document.querySelector(s);
 const now = () => performance.now();
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -37,6 +37,8 @@ measure();
 const mat = document.createElement('div');
 mat.className = 'mat';
 table.appendChild(mat);
+function applyMat() { stage.dataset.mat = settings.mat; }
+applyMat();
 const dice = [new Die(table), new Die(table)];
 
 // To hvilepladser ved siden af hinanden, med lidt tilfældighed (aldrig overlap)
@@ -282,6 +284,7 @@ document.querySelectorAll('.seg').forEach((seg) => {
     const b = e.target.closest('button');
     if (!b) return;
     settings[seg.dataset.key] = b.dataset.v;
+    if (seg.dataset.key === 'mat') { applyMat(); saveSettings(settings); syncPanel(); return; }
     settings.active = true;
     state = { ...newState(settings), last: state.last, quick: state.quick };
     saveSettings(settings);

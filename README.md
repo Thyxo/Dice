@@ -74,6 +74,8 @@ At **lukke panelet** (Færdig) genstarter tællerne og gen-armerer engangs-force
 
 **Øvrige kontakter:** Ærlige kast undgår målet (så forcen føles særlig) · Vis sum · Lyd · Vibration · Diskret prik øverst til venstre når force er klar · Hurtig-force til/fra · Rolig tilstand slår force fra.
 
+**Måtte:** grøn (standard), sort, rød eller blå filt. Påvirker ikke force.
+
 Nederst: log over seneste kast (forcede i grønt), oversigt over gestusser, **PANIK** og **Rolig tilstand nu**.
 
 ---
