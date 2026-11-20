@@ -14,6 +14,8 @@ npm run icons   # tegn app-ikonerne igen (kræver Pillow)
 ```
 
 ### Udgivelse (Vercel)
+**Produktion:** https://magix-dices.vercel.app
+
 Statisk site. Vercel-projektet er koblet til GitHub, så hvert push udgives automatisk:
 - push til `main` → produktion
 - push til andre branches → preview-link
