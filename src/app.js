@@ -4,7 +4,7 @@ import { nextThrow, newState, status, parseList, quickFromTaps, sumOf } from './
 import { loadSettings, saveSettings } from './settings.js';
 import { unlockAudio, clack } from './sound.js';
 
-const APP_VERSION = 'v1';
+const APP_VERSION = 'v2';
 const $ = (s) => document.querySelector(s);
 const now = () => performance.now();
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -34,6 +34,9 @@ function measure() {
 }
 measure();
 
+const mat = document.createElement('div');
+mat.className = 'mat';
+table.appendChild(mat);
 const dice = [new Die(table), new Die(table)];
 
 // To hvilepladser ved siden af hinanden, med lidt tilfældighed (aldrig overlap)
@@ -74,18 +77,17 @@ async function roll() {
   sumEl.classList.remove('on');
 
   const res = nextThrow(settings, state);
-  const spots = restSpots();
-  const W = window.innerWidth;
-  const H = window.innerHeight;
-  // Kastet kommer nedefra (fra den der kaster), let skråt
-  const baseX = rnd(-0.25, 0.25) * W;
-  const fromY = H * rnd(0.85, 1.05);
-  const dur = rnd(1050, 1350);
-
+  let spots = restSpots();
+  // Sørg for at begge terninger flytter sig synligt
+  for (let i = 0; i < 12 && dice.some((d, k) => Math.hypot(d.pose.x - spots[k].x, d.pose.y - spots[k].y) < size * 0.45
+    && Math.hypot(d.pose.x - spots[1 - k].x, d.pose.y - spots[1 - k].y) < size * 0.45); i++) spots = restSpots();
+  // Venstre terning bliver til venstre (de flyver ikke gennem hinanden)
+  if ((dice[0].pose.x < dice[1].pose.x) !== (spots[0].x < spots[1].x)) spots = [spots[1], spots[0]];
+  const dur = rnd(780, 920);
   const runs = dice.map((d, i) => d.roll(res.dice[i], spots[i].x, spots[i].y, size, {
-    from: { x: baseX + (i ? 1 : -1) * size * rnd(0.3, 0.7), y: fromY + rnd(-0.1, 0.1) * H },
-    dur: dur + rnd(-80, 80),
-    delay: i ? rnd(15, 90) : 0,
+    dur: dur + rnd(-50, 50),
+    delay: i ? rnd(0, 60) : 0,
+    lift: rnd(0.85, 1.1),
   }));
 
   if (settings.sound) runs.forEach((r) => r.hits.forEach((h) => clack(h.s * rnd(0.75, 1), h.ms)));

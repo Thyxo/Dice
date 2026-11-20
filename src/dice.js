@@ -33,7 +33,17 @@ function makeFace(n, t) {
 }
 
 export class Die {
+  // Tre lag, så bevægelserne ikke forstyrrer hinanden (det gav hak før):
+  //   .die-pos  → glider hen over måtten (x, y)
+  //   .die-hop  → hopper op og ned (z) med fysisk easing
+  //   .die      → roterer og bremser blødt op
   constructor(table) {
+    this.pos = document.createElement('div');
+    this.pos.className = 'die-pos';
+    this.shadow = document.createElement('div');
+    this.shadow.className = 'die-shadow';
+    this.hop = document.createElement('div');
+    this.hop.className = 'die-hop';
     this.el = document.createElement('div');
     this.el.className = 'die';
     // Indre kerne fylder hullerne ved de afrundede hjørner
@@ -43,23 +53,20 @@ export class Die {
       this.el.appendChild(k);
     }
     for (const f of FACES) this.el.appendChild(makeFace(f.n, f.t));
-    this.shadow = document.createElement('div');
-    this.shadow.className = 'die-shadow';
-    table.appendChild(this.shadow);
-    table.appendChild(this.el);
-    this.pose = { x: 0, y: 0, z: 0, rz: 0, rx: 0, ry: 0 };
+    this.hop.appendChild(this.el);
+    this.pos.append(this.shadow, this.hop);
+    table.appendChild(this.pos);
+    this.pose = { x: 0, y: 0, rz: 0, rx: 0, ry: 0 };
     this.value = 1;
     this.anims = [];
   }
 
-  static tf(p, half) {
-    return `translate3d(${p.x}px,${p.y}px,${half + p.z}px) rotateZ(${p.rz}deg) rotateX(${p.rx}deg) rotateY(${p.ry}deg)`;
-  }
-
-  static shadowTf(p, size) {
-    const lift = Math.max(0, p.z) / size;
-    const s = 1 + lift * 0.5;
-    return `translate3d(${p.x + p.z * 0.18}px,${p.y + p.z * 0.25}px,0.5px) scale(${s})`;
+  static posTf(p) { return `translate3d(${p.x}px,${p.y}px,0)`; }
+  static hopTf(z, half) { return `translateZ(${half + z}px)`; }
+  static rotTf(p) { return `rotateZ(${p.rz}deg) rotateX(${p.rx}deg) rotateY(${p.ry}deg)`; }
+  static shadowFx(z, size) {
+    const k = Math.max(0, z) / size;
+    return { transform: `translate3d(${z * 0.15}px,${z * 0.22}px,1px) scale(${1 + k * 0.45})`, opacity: Math.max(0.3, 1 - k * 0.6) };
   }
 
   stop() {
@@ -67,77 +74,67 @@ export class Die {
     this.anims = [];
   }
 
+  apply(size) {
+    const half = size / 2;
+    this.pos.style.transform = Die.posTf(this.pose);
+    this.hop.style.transform = Die.hopTf(0, half);
+    this.el.style.transform = Die.rotTf(this.pose);
+    const sh = Die.shadowFx(0, size);
+    this.shadow.style.transform = sh.transform;
+    this.shadow.style.opacity = String(sh.opacity);
+  }
+
   // Læg terningen stille med side n op
   place(n, x, y, rz, size) {
     this.stop();
     const [rx, ry] = ROT[n];
     this.value = n;
-    this.pose = { x, y, z: 0, rz, rx, ry };
-    this.el.style.transform = Die.tf(this.pose, size / 2);
-    this.shadow.style.transform = Die.shadowTf(this.pose, size);
-    this.shadow.style.opacity = '1';
+    this.pose = { x, y, rz, rx, ry };
+    this.apply(size);
   }
 
-  // Kast terningen, så den lander på side n i (x, y).
-  // from = startpunkt (uden for skærmen), dur = ms. Returnerer { done, hits:[ms...] }
-  roll(n, x, y, size, { from, dur, delay = 0 }) {
+  // Kast terningen fra hvor den ligger, så den lander på side n i (x, y). Returnerer { done, hits }
+  roll(n, x, y, size, { dur, delay = 0, lift = 1 }) {
     this.stop();
     const half = size / 2;
     const [fx, fy] = ROT[n];
     const sign = () => (Math.random() < 0.5 ? -1 : 1);
-    const finalRz = this.pose.rz + rnd(-60, 60);
-    const end = { x, y, z: 0, rz: finalRz, rx: fx, ry: fy };
-    // Ekstra omgange, der "tumles af" undervejs (hele omgange ændrer ikke slutsiden)
-    const ex = 360 * pick([2, 3]) * sign();
-    const ey = 360 * pick([1, 2, 3]) * sign();
-    const ez = rnd(140, 420) * sign();
-
     const start = { ...this.pose };
-    const launch = { x: from.x, y: from.y, z: size * 2.6, rz: finalRz + ez * 1.15, rx: fx + ex * 1.1, ry: fy + ey * 1.1 };
-    // Hop: første nedslag, to mindre hop, glid på plads
-    const h1 = size * rnd(0.75, 1.0);
-    const h2 = size * rnd(0.22, 0.34);
-    const lerp = (a, b, t) => a + (b - a) * t;
-    const at = (t, z, spin) => ({
-      x: lerp(launch.x, end.x, t),
-      y: lerp(launch.y, end.y, t),
-      z,
-      rz: end.rz + ez * spin,
-      rx: end.rx + ex * spin,
-      ry: end.ry + ey * spin,
-    });
-    // Små "rest"-rotationer på hoppene, så terningen vipper over en kant til sidst
-    const wob = rnd(14, 26) * sign();
-    const frames = [
-      { o: 0, p: start, e: 'cubic-bezier(.4,0,.8,.6)' },
-      { o: 0.14, p: launch, e: 'cubic-bezier(.45,0,.9,.55)' },
-      { o: 0.42, p: at(0.72, 0, 0.30), e: 'cubic-bezier(.1,.55,.4,1)' },
-      { o: 0.56, p: at(0.86, h1, 0.12), e: 'cubic-bezier(.6,0,.9,.4)' },
-      { o: 0.69, p: at(0.94, 0, 0.04), e: 'cubic-bezier(.1,.6,.4,1)' },
-      { o: 0.77, p: { ...at(0.975, h2, 0), rx: end.rx + wob }, e: 'cubic-bezier(.6,0,.9,.4)' },
-      { o: 0.85, p: { ...at(0.99, 0, 0), rx: end.rx }, e: 'cubic-bezier(.2,.7,.3,1)' },
-      { o: 1, p: end },
-    ];
+    const end = { x, y };
+    // Ekstra hele omgange: slutvinklen er den rigtige side + n·360°, regnet fra hvor terningen står nu
+    const wind = (from, to, k) => to + 360 * (Math.round((from - to) / 360) + k * sign());
+    const fin = { rz: start.rz + rnd(90, 240) * sign(), rx: wind(start.rx, fx, pick([1, 2])), ry: wind(start.ry, fy, pick([1, 1, 2])) };
     const opts = { duration: dur, delay, fill: 'forwards' };
-    const a1 = this.el.animate(frames.map((f) => ({ offset: f.o, transform: Die.tf(f.p, half), easing: f.e || 'linear' })), opts);
-    const a2 = this.shadow.animate(frames.map((f) => ({
-      offset: f.o,
-      transform: Die.shadowTf(f.p, size),
-      opacity: f.o > 0 && f.o < 0.2 ? 0 : Math.max(0.25, 1 - f.p.z / (size * 2)),
-      easing: f.e || 'linear',
-    })), opts);
-    this.anims = [a1, a2];
-    this.pose = end;
+    const H = size * rnd(1.1, 1.4) * lift;
+    const h1 = size * rnd(0.32, 0.45) * lift;
+    const h2 = size * rnd(0.08, 0.14) * lift;
+    // Højde: op, ned (nedslag), to mindre hop. ease-out op, ease-in ned = tyngdekraft.
+    const UP = 'cubic-bezier(.25,.6,.5,1)';
+    const DOWN = 'cubic-bezier(.5,0,.75,.4)';
+    const zs = [[0, 0, UP], [0.24, H, DOWN], [0.5, 0, UP], [0.64, h1, DOWN], [0.77, 0, UP], [0.84, h2, DOWN], [0.9, 0, 'linear'], [1, 0]];
+    const aHop = this.hop.animate(zs.map(([o, z, e]) => ({ offset: o, transform: Die.hopTf(z, half), easing: e || 'linear' })), opts);
+    const aSh = this.shadow.animate(zs.map(([o, z, e]) => ({ offset: o, ...Die.shadowFx(z, size), easing: e || 'linear' })), opts);
+    // Glid: hurtigt i starten, bremser blødt op (ingen hak ved hoppene)
+    const aPos = this.pos.animate([
+      { transform: Die.posTf(start) },
+      { transform: Die.posTf(end) },
+    ], { ...opts, duration: dur * 0.95, easing: 'cubic-bezier(.2,.65,.3,1)' });
+    // Rotation: tumler, bremser blødt op, vipper en anelse forbi og falder på plads
+    const tip = rnd(5, 9) * sign();
+    const aRot = this.el.animate([
+      { offset: 0, transform: Die.rotTf(start), easing: 'cubic-bezier(.3,.55,.4,1)' },
+      { offset: 0.8, transform: Die.rotTf({ ...fin, rx: fin.rx + tip }), easing: 'cubic-bezier(.4,0,.4,1)' },
+      { offset: 1, transform: Die.rotTf(fin) },
+    ], { ...opts, duration: dur * 0.92 });
+    this.anims = [aHop, aSh, aPos, aRot];
+    const norm = (v) => ((v % 360) + 360) % 360;
+    this.pose = { x, y, rz: norm(fin.rz), rx: norm(fin.rx), ry: norm(fin.ry) };
     this.value = n;
-    const done = a1.finished.then(() => {
-      // Lås slutstillingen i style, så næste kast starter herfra
-      this.el.style.transform = Die.tf(end, half);
-      this.shadow.style.transform = Die.shadowTf(end, size);
-      this.shadow.style.opacity = '1';
+    const done = Promise.all(this.anims.map((a) => a.finished)).then(() => {
+      this.apply(size); // lås slutstillingen, så næste kast starter herfra
       this.stop();
     }).catch(() => {});
-    // Nedslag (til lyd/vibration): styrke 0-1
-    const hits = [[0.42, 1], [0.69, 0.55], [0.85, 0.25]].map(([o, s]) => ({ ms: delay + o * dur, s }));
+    const hits = [[0.5, 1], [0.77, 0.5], [0.9, 0.22]].map(([o, s]) => ({ ms: delay + o * dur, s }));
     return { done, hits };
   }
 }

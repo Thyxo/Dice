@@ -1,6 +1,6 @@
 :root {
   --bg: #050505;
-  --felt: #141416;
+  --felt: #0b0b0c;
   --red: #d3141c;
   --red-hi: #f0353b;
   --red-lo: #8f0a10;
@@ -48,11 +48,40 @@ html, body {
   transform: rotateX(var(--tilt));
 }
 
+/* ---------- den grønne close-up-måtte ---------- */
+.mat {
+  position: absolute;
+  width: min(94vw, 560px); height: calc(var(--s) * 3.3);
+  left: calc(min(94vw, 560px) / -2); top: calc(var(--s) * -1.65);
+  border-radius: calc(var(--s) * .16);
+  transform: translateZ(0);
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 45%, rgba(120,190,130,.10), transparent 70%),
+    radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(0,0,0,.45) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .7 0 0 0 0 1 0 0 0 0 .75 0 0 0 .13 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    #0f3b22;
+  box-shadow:
+    0 calc(var(--s) * .08) calc(var(--s) * .25) rgba(0,0,0,.75),
+    inset 0 0 0 1px rgba(255,255,255,.04),
+    inset 0 calc(var(--s) * .02) calc(var(--s) * .04) rgba(255,255,255,.05);
+}
+/* syning langs kanten */
+.mat::after {
+  content: ""; position: absolute; inset: calc(var(--s) * .07);
+  border-radius: calc(var(--s) * .11);
+  border: 1.5px dashed rgba(180,220,190,.16);
+}
+
 /* ---------- terningen ---------- */
-.die {
+.die-pos {
   position: absolute;
   left: calc(var(--s) / -2); top: calc(var(--s) / -2);
   width: var(--s); height: var(--s);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.die-hop, .die {
+  position: absolute; inset: 0;
   transform-style: preserve-3d;
   will-change: transform;
 }
@@ -89,9 +118,7 @@ html, body {
 .core.cx { transform: rotateY(90deg); }
 
 .die-shadow {
-  position: absolute;
-  left: calc(var(--s) / -2); top: calc(var(--s) / -2);
-  width: var(--s); height: var(--s);
+  position: absolute; inset: 0;
   border-radius: 26%;
   background: radial-gradient(closest-side, rgba(0,0,0,.85), rgba(0,0,0,.45) 60%, transparent);
   filter: blur(calc(var(--s) * .07));
@@ -101,7 +128,7 @@ html, body {
 /* ---------- sum, hint, peek ---------- */
 .sum {
   position: absolute; left: 0; right: 0;
-  top: calc(46% + var(--s) * 1.25);
+  top: calc(46% + var(--s) * 1.85);
   text-align: center;
   font-size: calc(var(--s) * .5); font-weight: 200; letter-spacing: .02em;
   color: rgba(255,255,255,.62);
